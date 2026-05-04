@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        color-scheme: light;
+
+        --color-background: 248 250 252;
+        --color-foreground: 15 23 42;
+
+        --color-surface: 255 255 255;
+        --color-surface-muted: 241 245 249;
+
+        --color-border: 226 232 240;
+
+        --color-primary: 185 28 28;
+        --color-primary-foreground: 255 255 255;
+        --color-primary-muted: 254 226 226;
+
+        --color-danger: 220 38 38;
+        --color-danger-foreground: 255 255 255;
+    }
+
+    .dark {
+        color-scheme: dark;
+
+        --color-background: 2 6 23;
+        --color-foreground: 248 250 252;
+
+        --color-surface: 15 23 42;
+        --color-surface-muted: 30 41 59;
+
+        --color-border: 51 65 85;
+
+        --color-primary: 248 113 113;
+        --color-primary-foreground: 69 10 10;
+        --color-primary-muted: 69 10 10;
+
+        --color-danger: 248 113 113;
+        --color-danger-foreground: 69 10 10;
+    }
+
+    * {
+        @apply border-border;
+    }
+
+    html {
+        @apply scroll-smooth;
+    }
+
+    body {
+        @apply min-h-screen bg-background text-foreground antialiased;
+    }
+
+    ::selection {
+        @apply bg-primary text-primary-foreground;
+    }
+}
+
+@layer components {
+    .app-shell {
+        @apply min-h-screen bg-background text-foreground;
+    }
+
+    .app-container {
+        @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+    }
+
+    .app-card {
+        @apply rounded-app border border-border bg-surface p-5 shadow-soft transition-colors dark:shadow-soft-dark;
+    }
+
+    .app-card-muted {
+        @apply rounded-app border border-border bg-surface-muted p-5 transition-colors;
+    }
+
+    .app-heading {
+        @apply text-2xl font-bold tracking-tight text-foreground sm:text-3xl;
+    }
+
+    .app-subtitle {
+        @apply mt-2 text-sm leading-6 text-foreground/70;
+    }
+
+    .app-button-primary {
+        @apply inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background;
+    }
+
+    .app-button-secondary {
+        @apply inline-flex items-center justify-center rounded-xl border border-border bg-surface px-4 py-2 text-sm font-semibold text-foreground transition hover:bg-surface-muted focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background;
+    }
+
+    .app-input {
+        @apply w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition placeholder:text-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/20;
+    }
+
+    .app-label {
+        @apply text-sm font-medium text-foreground;
+    }
+
+    .app-badge {
+        @apply inline-flex items-center rounded-full bg-primary-muted px-2.5 py-1 text-xs font-semibold text-primary;
+    }
+}
