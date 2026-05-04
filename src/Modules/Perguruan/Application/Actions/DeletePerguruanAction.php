@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Src\Modules\Perguruan\Application\Actions;
+namespace Modules\Perguruan\Application\Actions;
 
-use Src\Modules\Perguruan\Domain\Models\Perguruan;
+use Modules\Perguruan\Domain\Models\Perguruan;
 
 class DeletePerguruanAction
 {

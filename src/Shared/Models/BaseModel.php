@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Src\Shared\Models;
+namespace Shared\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;

@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Src\Modules\Perguruan\Presentation\Controllers;
+namespace Modules\Perguruan\Presentation\Controllers;
 
 use App\Http\Controllers\Controller;
-use Src\Modules\Perguruan\Application\Actions\CreatePerguruanAction;
-use Src\Modules\Perguruan\Application\Actions\DeletePerguruanAction;
-use Src\Modules\Perguruan\Application\Actions\ListPerguruanAction;
-use Src\Modules\Perguruan\Application\Actions\UpdatePerguruanAction;
-use Src\Modules\Perguruan\Application\DTOs\PerguruanData;
-use Src\Modules\Perguruan\Domain\Models\Perguruan;
-use Src\Modules\Perguruan\Presentation\Requests\CreatePerguruanRequest;
-use Src\Modules\Perguruan\Presentation\Requests\UpdatePerguruanRequest;
+use Modules\Perguruan\Application\Actions\CreatePerguruanAction;
+use Modules\Perguruan\Application\Actions\DeletePerguruanAction;
+use Modules\Perguruan\Application\Actions\ListPerguruanAction;
+use Modules\Perguruan\Application\Actions\UpdatePerguruanAction;
+use Modules\Perguruan\Application\DTOs\PerguruanData;
+use Modules\Perguruan\Domain\Models\Perguruan;
+use Modules\Perguruan\Presentation\Requests\CreatePerguruanRequest;
+use Modules\Perguruan\Presentation\Requests\UpdatePerguruanRequest;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -40,7 +40,7 @@ class PerguruanController extends Controller
         CreatePerguruanRequest $request,
         CreatePerguruanAction $action,
     ): RedirectResponse {
-        $action->execute(PerguruanData::from($request->validated()));
+        $action->execute(PerguruanData::fromArray($request->validated()));
 
         return redirect()
             ->route('perguruan.index')
@@ -66,7 +66,7 @@ class PerguruanController extends Controller
         UpdatePerguruanAction $action,
         Perguruan $perguruan,
     ): RedirectResponse {
-        $action->execute($perguruan, PerguruanData::from($request->validated()));
+        $action->execute($perguruan, PerguruanData::fromArray($request->validated()));
 
         return redirect()
             ->route('perguruan.index')

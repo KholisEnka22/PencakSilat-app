@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Src\Modules\Perguruan\Domain\Models;
+namespace Modules\Perguruan\Domain\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Modules\Perguruan\Domain\Enums\PerguruanStatus;
+use Shared\Models\BaseModel;
 
-class Perguruan extends Model
+class Perguruan extends BaseModel
 {
     protected $table = 'perguruans';
 
@@ -37,5 +38,10 @@ class Perguruan extends Model
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',
         ];
+    }
+
+    public function status(): PerguruanStatus
+    {
+        return PerguruanStatus::fromIsActive((bool) $this->is_active);
     }
 }

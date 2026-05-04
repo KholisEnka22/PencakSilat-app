@@ -19,7 +19,7 @@ class ModulesServiceProvider extends ServiceProvider
      * @var array<class-string<ServiceProvider>>
      */
     protected array $modules = [
-        \Src\Modules\Perguruan\PerguruanServiceProvider::class,
+        \Modules\Perguruan\PerguruanServiceProvider::class,
     ];
 
     /**

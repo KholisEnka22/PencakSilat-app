@@ -9,51 +9,33 @@ use Illuminate\Support\Str;
 
 class MakeModuleCommand extends Command
 {
-    protected $signature = 'make:module {name : Nama module (contoh: Anggota)}';
+    protected $signature = 'make:module {name : Nama module, contoh: Anggota}';
 
-    protected $description = 'Generate struktur DDD module baru di src/Modules';
+    protected $description = 'Generate struktur module baru di src/Modules';
 
     private string $moduleName;
+
     private string $modulePath;
+
     private string $namespace;
 
     public function handle(): int
     {
-        $this->moduleName = Str::studly($this->argument('name'));
+        $this->moduleName = Str::studly((string) $this->argument('name'));
         $this->modulePath = base_path("src/Modules/{$this->moduleName}");
-        $this->namespace  = "Src\\Modules\\{$this->moduleName}";
+        $this->namespace = "Modules\\{$this->moduleName}";
 
         if (is_dir($this->modulePath)) {
-            $this->newLine();
             $this->components->error("Module [{$this->moduleName}] sudah ada.");
-            $this->line("  <fg=yellow>Path:</> src/Modules/{$this->moduleName}");
-            $this->newLine();
+            $this->line("Path: src/Modules/{$this->moduleName}");
 
             return self::FAILURE;
         }
 
         $this->showHeader();
-
-        $this->components->info("Menyiapkan struktur module [{$this->moduleName}]...");
-        $this->newLine();
-
-        $this->withProgressBar(
-            [
-                'Membuat struktur folder DDD',
-                'Membuat file Action, DTO, Model, Controller, Request, Resource, Provider, dan Routes',
-                'Menyiapkan instruksi registrasi ServiceProvider',
-            ],
-            function (string $step): void {
-                match ($step) {
-                    'Membuat struktur folder DDD' => $this->createDirectories(),
-                    'Membuat file Action, DTO, Model, Controller, Request, Resource, Provider, dan Routes' => $this->createFiles(),
-                    'Menyiapkan instruksi registrasi ServiceProvider' => $this->reminderRegisterProvider(),
-                    default => null,
-                };
-            }
-        );
-
-        $this->newLine(2);
+        $this->createDirectories();
+        $this->createFiles();
+        $this->reminderRegisterProvider();
         $this->showSuccessMessage();
 
         return self::SUCCESS;
@@ -62,56 +44,20 @@ class MakeModuleCommand extends Command
     private function showHeader(): void
     {
         $this->newLine();
-
-        $this->line('<fg=cyan>╔══════════════════════════════════════════════════════╗</>');
-        $this->line('<fg=cyan>║</> <fg=green;options=bold>🥋 DDD MODULE GENERATOR</>                            <fg=cyan>║</>');
-        $this->line('<fg=cyan>╚══════════════════════════════════════════════════════╝</>');
-
-        $this->newLine();
-
-        $this->line("  <fg=gray>Module</>    : <fg=white;options=bold>{$this->moduleName}</>");
-        $this->line("  <fg=gray>Namespace</> : <fg=white>{$this->namespace}</>");
-        $this->line("  <fg=gray>Path</>      : <fg=white>src/Modules/{$this->moduleName}</>");
-
-        $this->newLine();
-    }
-
-    private function showSuccessMessage(): void
-    {
-        $this->line('<fg=green>╔══════════════════════════════════════════════════════╗</>');
-        $this->line('<fg=green>║</> <fg=white;options=bold>✅ MODULE BERHASIL DIBUAT DENGAN RAPI</>              <fg=green>║</>');
-        $this->line('<fg=green>╚══════════════════════════════════════════════════════╝</>');
-
-        $this->newLine();
-
-        $this->line("  <fg=gray>Module</>       : <fg=green;options=bold>{$this->moduleName}</>");
-        $this->line("  <fg=gray>Lokasi</>       : <fg=cyan>src/Modules/{$this->moduleName}</>");
-        $this->line("  <fg=gray>Architecture</> : <fg=yellow>DDD / Modular Structure</>");
-
-        $this->newLine();
-
-        $this->components->info('Langkah berikutnya:');
-        $this->line("  <fg=yellow>1.</> Daftarkan ServiceProvider module ini.");
-        $this->line("  <fg=yellow>2.</> Buat migration table untuk module <fg=cyan>{$this->snake()}</>.");
-        $this->line("  <fg=yellow>3.</> Sesuaikan fillable, validation rules, DTO, dan Inertia page.");
-        $this->line("  <fg=yellow>4.</> Jalankan route:list untuk memastikan route module terbaca.");
-
-        $this->newLine();
-
-        $this->line('<fg=green;options=bold>🚀 Selesai! Module siap dikembangkan. Gas lanjut bangun fiturnya.</>');
+        $this->components->info("Membuat module [{$this->moduleName}]");
+        $this->line("Namespace : {$this->namespace}");
+        $this->line("Path      : src/Modules/{$this->moduleName}");
         $this->newLine();
     }
 
     private function createDirectories(): void
     {
-        $this->newLine();
-        $this->line('<fg=yellow>📁 Membuat struktur folder...</>');
-
         $dirs = [
             'Application/Actions',
             'Application/DTOs',
+            'Domain/Enums',
             'Domain/Models',
-            'Presentation/Controllers',
+            'Presentation/Controllers/Api',
             'Presentation/Requests',
             'Presentation/Resources',
         ];
@@ -121,247 +67,271 @@ class MakeModuleCommand extends Command
 
             if (! is_dir($path)) {
                 mkdir($path, 0755, true);
-
-                $this->line("  <fg=green>CREATE</> <fg=gray>directory</> src/Modules/{$this->moduleName}/{$dir}");
             }
+
+            $this->line("CREATE directory src/Modules/{$this->moduleName}/{$dir}");
         }
     }
 
     private function createFiles(): void
     {
-        $this->newLine();
-        $this->line('<fg=yellow>🧩 Membuat file module...</>');
-
         $files = [
-            'Application/Actions/Create{Name}Action.php' => $this->stubAction('Create'),
-            'Application/Actions/Update{Name}Action.php' => $this->stubAction('Update'),
-            'Application/Actions/Delete{Name}Action.php' => $this->stubAction('Delete'),
-            'Application/Actions/List{Name}Action.php'   => $this->stubAction('List'),
-
+            'Application/Actions/Create{Name}Action.php' => $this->stubCreateAction(),
+            'Application/Actions/Update{Name}Action.php' => $this->stubUpdateAction(),
+            'Application/Actions/Delete{Name}Action.php' => $this->stubDeleteAction(),
+            'Application/Actions/List{Name}Action.php' => $this->stubListAction(),
             'Application/DTOs/{Name}Data.php' => $this->stubDto(),
-
             'Domain/Models/{Name}.php' => $this->stubModel(),
-
-            'Presentation/Controllers/{Name}Controller.php' => $this->stubControllerWeb(),
-
+            'Presentation/Controllers/{Name}Controller.php' => $this->stubWebController(),
+            'Presentation/Controllers/Api/{Name}Controller.php' => $this->stubApiController(),
             'Presentation/Requests/Create{Name}Request.php' => $this->stubRequest('Create'),
             'Presentation/Requests/Update{Name}Request.php' => $this->stubRequest('Update'),
-
             'Presentation/Resources/{Name}Resource.php' => $this->stubResource(),
-
             '{Name}ServiceProvider.php' => $this->stubServiceProvider(),
-            'routes.php'                => $this->stubRoutesWeb(),
+            'routes.php' => $this->stubRoutesWeb(),
+            'routes_api.php' => $this->stubRoutesApi(),
         ];
 
         foreach ($files as $relativePath => $content) {
             $resolvedPath = str_replace('{Name}', $this->moduleName, $relativePath);
-            $fullPath     = "{$this->modulePath}/{$resolvedPath}";
+            $fullPath = "{$this->modulePath}/{$resolvedPath}";
 
             file_put_contents($fullPath, $content);
 
-            $this->line("  <fg=blue>FILE</>   <fg=gray>created</> src/Modules/{$this->moduleName}/{$resolvedPath}");
+            $this->line("CREATE file src/Modules/{$this->moduleName}/{$resolvedPath}");
         }
     }
 
-    private function stubAction(string $prefix): string
+    private function stubCreateAction(): string
     {
-        $name = $this->moduleName;
-        $ns   = $this->namespace;
-
-        $dtoImport   = "use {$ns}\\Application\\DTOs\\{$name}Data;";
-        $modelImport = "use {$ns}\\Domain\\Models\\{$name};";
-
-        if ($prefix === 'List') {
-            return <<<PHP
-            <?php
-
-            declare(strict_types=1);
-
-            namespace {$ns}\Application\Actions;
-
-            {$modelImport}
-            use Illuminate\Pagination\LengthAwarePaginator;
-
-            class List{$name}Action
-            {
-                public function execute(array \$filters = []): LengthAwarePaginator
-                {
-                    \$search  = \$filters['search'] ?? null;
-                    \$sortBy  = \$filters['sort_by'] ?? 'created_at';
-                    \$sortDir = \$filters['sort_dir'] ?? 'desc';
-                    \$perPage = (int) (\$filters['per_page'] ?? 15);
-
-                    if (! in_array(strtolower((string) \$sortDir), ['asc', 'desc'], true)) {
-                        \$sortDir = 'desc';
-                    }
-
-                    return {$name}::query()
-                        ->when(
-                            \$search,
-                            fn (\$query) => \$query->where('name', 'like', "%{\$search}%")
-                        )
-                        ->orderBy(\$sortBy, \$sortDir)
-                        ->paginate(\$perPage);
-                }
-            }
-            PHP;
-        }
-
-        if ($prefix === 'Create') {
-            return <<<PHP
-            <?php
-
-            declare(strict_types=1);
-
-            namespace {$ns}\Application\Actions;
-
-            {$dtoImport}
-            {$modelImport}
-
-            class Create{$name}Action
-            {
-                public function execute({$name}Data \$data): {$name}
-                {
-                    return {$name}::create(\$data->toArray());
-                }
-            }
-            PHP;
-        }
-
-        if ($prefix === 'Update') {
-            return <<<PHP
-            <?php
-
-            declare(strict_types=1);
-
-            namespace {$ns}\Application\Actions;
-
-            {$dtoImport}
-            {$modelImport}
-
-            class Update{$name}Action
-            {
-                public function execute({$name} \$model, {$name}Data \$data): {$name}
-                {
-                    \$model->update(\$data->toArray());
-
-                    return \$model->refresh();
-                }
-            }
-            PHP;
-        }
-
-        return <<<PHP
+        return $this->render(<<<'PHP'
         <?php
 
         declare(strict_types=1);
 
-        namespace {$ns}\Application\Actions;
+        namespace {{NAMESPACE}}\Application\Actions;
 
-        {$modelImport}
+        use {{NAMESPACE}}\Application\DTOs\{{NAME}}Data;
+        use {{NAMESPACE}}\Domain\Models\{{NAME}};
 
-        class Delete{$name}Action
+        class Create{{NAME}}Action
         {
-            public function execute({$name} \$model): bool
+            public function execute({{NAME}}Data $data): {{NAME}}
             {
-                return \$model->delete();
+                return {{NAME}}::create($data->toArray());
             }
         }
-        PHP;
+        PHP);
+    }
+
+    private function stubUpdateAction(): string
+    {
+        return $this->render(<<<'PHP'
+        <?php
+
+        declare(strict_types=1);
+
+        namespace {{NAMESPACE}}\Application\Actions;
+
+        use {{NAMESPACE}}\Application\DTOs\{{NAME}}Data;
+        use {{NAMESPACE}}\Domain\Models\{{NAME}};
+
+        class Update{{NAME}}Action
+        {
+            public function execute({{NAME}} $model, {{NAME}}Data $data): {{NAME}}
+            {
+                $model->update($data->toArray());
+
+                return $model->refresh();
+            }
+        }
+        PHP);
+    }
+
+    private function stubDeleteAction(): string
+    {
+        return $this->render(<<<'PHP'
+        <?php
+
+        declare(strict_types=1);
+
+        namespace {{NAMESPACE}}\Application\Actions;
+
+        use {{NAMESPACE}}\Domain\Models\{{NAME}};
+
+        class Delete{{NAME}}Action
+        {
+            public function execute({{NAME}} $model): bool
+            {
+                return $model->delete();
+            }
+        }
+        PHP);
+    }
+
+    private function stubListAction(): string
+    {
+        return $this->render(<<<'PHP'
+        <?php
+
+        declare(strict_types=1);
+
+        namespace {{NAMESPACE}}\Application\Actions;
+
+        use Illuminate\Pagination\LengthAwarePaginator;
+        use {{NAMESPACE}}\Domain\Models\{{NAME}};
+
+        class List{{NAME}}Action
+        {
+            /**
+             * @param array<string, mixed> $filters
+             */
+            public function execute(array $filters = []): LengthAwarePaginator
+            {
+                $search = $filters['search'] ?? null;
+                $sortBy = $this->resolveSortBy($filters['sort_by'] ?? 'created_at');
+                $sortDir = $this->resolveSortDirection($filters['sort_dir'] ?? 'desc');
+                $perPage = max(1, min((int) ($filters['per_page'] ?? 15), 100));
+
+                return {{NAME}}::query()
+                    ->when($search, function ($query) use ($search): void {
+                        $query->where('name', 'like', "%{$search}%");
+                    })
+                    ->orderBy($sortBy, $sortDir)
+                    ->paginate($perPage)
+                    ->withQueryString();
+            }
+
+            private function resolveSortBy(mixed $sortBy): string
+            {
+                $allowed = [
+                    'id',
+                    'name',
+                    'is_active',
+                    'created_at',
+                    'updated_at',
+                ];
+
+                return in_array($sortBy, $allowed, true) ? (string) $sortBy : 'created_at';
+            }
+
+            private function resolveSortDirection(mixed $sortDir): string
+            {
+                return in_array(strtolower((string) $sortDir), ['asc', 'desc'], true)
+                    ? strtolower((string) $sortDir)
+                    : 'desc';
+            }
+        }
+        PHP);
     }
 
     private function stubDto(): string
     {
-        $name = $this->moduleName;
-        $ns   = $this->namespace;
-
-        return <<<PHP
+        return $this->render(<<<'PHP'
         <?php
 
         declare(strict_types=1);
 
-        namespace {$ns}\\Application\\DTOs;
+        namespace {{NAMESPACE}}\Application\DTOs;
 
-        use Spatie\\LaravelData\\Data;
+        use Illuminate\Http\Request;
+        use Shared\Contracts\DTOInterface;
 
-        class {$name}Data extends Data
+        class {{NAME}}Data implements DTOInterface
         {
             public function __construct(
-                public readonly string \$name,
-                // TODO: tambahkan field sesuai kebutuhan
+                public readonly string $name,
+                public readonly bool $is_active = true,
             ) {}
+
+            public static function fromRequest(Request $request): static
+            {
+                return static::fromArray($request->validated());
+            }
+
+            /**
+             * @param array<string, mixed> $data
+             */
+            public static function fromArray(array $data): static
+            {
+                return new static(
+                    name: (string) $data['name'],
+                    is_active: array_key_exists('is_active', $data) ? (bool) $data['is_active'] : true,
+                );
+            }
+
+            /**
+             * @return array<string, mixed>
+             */
+            public function toArray(): array
+            {
+                return [
+                    'name' => $this->name,
+                    'is_active' => $this->is_active,
+                ];
+            }
         }
-        PHP;
+        PHP);
     }
 
     private function stubModel(): string
     {
-        $name  = $this->moduleName;
-        $ns    = $this->namespace;
-        $table = Str::snake(Str::plural($name));
-
-        return <<<PHP
+        return $this->render(<<<'PHP'
         <?php
 
         declare(strict_types=1);
 
-        namespace {$ns}\Domain\Models;
+        namespace {{NAMESPACE}}\Domain\Models;
 
-        use Illuminate\Database\Eloquent\Model;
+        use Shared\Models\BaseModel;
 
-        class {$name} extends Model
+        class {{NAME}} extends BaseModel
         {
-            protected \$table = '{$table}';
+            protected $table = '{{TABLE}}';
 
-            protected \$fillable = [
+            protected $fillable = [
                 'name',
-                // TODO: tambahkan columns sesuai migration
+                'is_active',
             ];
 
             protected function casts(): array
             {
-                return [
-                    'created_at' => 'datetime',
-                    'updated_at' => 'datetime',
-                    // TODO: tambahkan casts
-                ];
+                return array_merge(parent::casts(), [
+                    'is_active' => 'boolean',
+                ]);
             }
         }
-        PHP;
+        PHP);
     }
 
-    private function stubControllerWeb(): string
+    private function stubWebController(): string
     {
-        $name  = $this->moduleName;
-        $ns    = $this->namespace;
-        $camel = $this->camel();
-
-        return <<<PHP
+        return $this->render(<<<'PHP'
         <?php
 
         declare(strict_types=1);
 
-        namespace {$ns}\Presentation\Controllers;
+        namespace {{NAMESPACE}}\Presentation\Controllers;
 
         use App\Http\Controllers\Controller;
-        use {$ns}\Application\Actions\Create{$name}Action;
-        use {$ns}\Application\Actions\Delete{$name}Action;
-        use {$ns}\Application\Actions\List{$name}Action;
-        use {$ns}\Application\Actions\Update{$name}Action;
-        use {$ns}\\Application\\DTOs\\{$name}Data;
-        use {$ns}\\Domain\\Models\\{$name};
-        use {$ns}\Presentation\Requests\Create{$name}Request;
-        use {$ns}\Presentation\Requests\Update{$name}Request;
         use Illuminate\Http\RedirectResponse;
         use Inertia\Inertia;
         use Inertia\Response;
+        use {{NAMESPACE}}\Application\Actions\Create{{NAME}}Action;
+        use {{NAMESPACE}}\Application\Actions\Delete{{NAME}}Action;
+        use {{NAMESPACE}}\Application\Actions\List{{NAME}}Action;
+        use {{NAMESPACE}}\Application\Actions\Update{{NAME}}Action;
+        use {{NAMESPACE}}\Application\DTOs\{{NAME}}Data;
+        use {{NAMESPACE}}\Domain\Models\{{NAME}};
+        use {{NAMESPACE}}\Presentation\Requests\Create{{NAME}}Request;
+        use {{NAMESPACE}}\Presentation\Requests\Update{{NAME}}Request;
 
-        class {$name}Controller extends Controller
+        class {{NAME}}Controller extends Controller
         {
-            public function index(List{$name}Action \$action): Response
+            public function index(List{{NAME}}Action $action): Response
             {
-                return Inertia::render('{$name}/Index', [
-                    '{$camel}s' => \$action->execute(request()->only([
+                return Inertia::render('{{NAME}}/Index', [
+                    '{{PLURAL_CAMEL}}' => $action->execute(request()->only([
                         'search',
                         'sort_by',
                         'sort_dir',
@@ -372,75 +342,158 @@ class MakeModuleCommand extends Command
 
             public function create(): Response
             {
-                return Inertia::render('{$name}/Create');
+                return Inertia::render('{{NAME}}/Create');
             }
 
             public function store(
-                Create{$name}Request \$request,
-                Create{$name}Action \$action,
+                Create{{NAME}}Request $request,
+                Create{{NAME}}Action $action,
             ): RedirectResponse {
-                \$action->execute({$name}Data::from(\$request->validated()));
+                $action->execute({{NAME}}Data::fromArray($request->validated()));
 
                 return redirect()
-                    ->route('{$this->snake()}.index')
-                    ->with('success', '{$name} berhasil ditambahkan.');
+                    ->route('{{SNAKE}}.index')
+                    ->with('success', '{{NAME}} berhasil ditambahkan.');
             }
 
-            public function show({$name} \${$camel}): Response
+            public function show({{NAME}} ${{CAMEL}}): Response
             {
-                return Inertia::render('{$name}/Show', [
-                    '{$camel}' => \${$camel},
+                return Inertia::render('{{NAME}}/Show', [
+                    '{{CAMEL}}' => ${{CAMEL}},
                 ]);
             }
 
-            public function edit({$name} \${$camel}): Response
+            public function edit({{NAME}} ${{CAMEL}}): Response
             {
-                return Inertia::render('{$name}/Edit', [
-                    '{$camel}' => \${$camel},
+                return Inertia::render('{{NAME}}/Edit', [
+                    '{{CAMEL}}' => ${{CAMEL}},
                 ]);
             }
 
             public function update(
-                Update{$name}Request \$request,
-                Update{$name}Action \$action,
-                {$name} \${$camel},
+                Update{{NAME}}Request $request,
+                Update{{NAME}}Action $action,
+                {{NAME}} ${{CAMEL}},
             ): RedirectResponse {
-                \$action->execute(\${$camel}, {$name}Data::from(\$request->validated()));
+                $action->execute(${{CAMEL}}, {{NAME}}Data::fromArray($request->validated()));
 
                 return redirect()
-                    ->route('{$this->snake()}.index')
-                    ->with('success', '{$name} berhasil diperbarui.');
+                    ->route('{{SNAKE}}.index')
+                    ->with('success', '{{NAME}} berhasil diperbarui.');
             }
 
             public function destroy(
-                Delete{$name}Action \$action,
-                {$name} \${$camel},
+                Delete{{NAME}}Action $action,
+                {{NAME}} ${{CAMEL}},
             ): RedirectResponse {
-                \$action->execute(\${$camel});
+                $action->execute(${{CAMEL}});
 
                 return redirect()
-                    ->route('{$this->snake()}.index')
-                    ->with('success', '{$name} berhasil dihapus.');
+                    ->route('{{SNAKE}}.index')
+                    ->with('success', '{{NAME}} berhasil dihapus.');
             }
         }
-        PHP;
+        PHP);
     }
 
-    private function stubRequest(string $prefix): string
+    private function stubApiController(): string
     {
-        $name = $this->moduleName;
-        $ns   = $this->namespace;
-
-        return <<<PHP
+        return $this->render(<<<'PHP'
         <?php
 
         declare(strict_types=1);
 
-        namespace {$ns}\\Presentation\\Requests;
+        namespace {{NAMESPACE}}\Presentation\Controllers\Api;
 
-        use Illuminate\\Foundation\\Http\\FormRequest;
+        use Illuminate\Http\JsonResponse;
+        use {{NAMESPACE}}\Application\Actions\Create{{NAME}}Action;
+        use {{NAMESPACE}}\Application\Actions\Delete{{NAME}}Action;
+        use {{NAMESPACE}}\Application\Actions\List{{NAME}}Action;
+        use {{NAMESPACE}}\Application\Actions\Update{{NAME}}Action;
+        use {{NAMESPACE}}\Application\DTOs\{{NAME}}Data;
+        use {{NAMESPACE}}\Domain\Models\{{NAME}};
+        use {{NAMESPACE}}\Presentation\Requests\Create{{NAME}}Request;
+        use {{NAMESPACE}}\Presentation\Requests\Update{{NAME}}Request;
+        use {{NAMESPACE}}\Presentation\Resources\{{NAME}}Resource;
+        use Shared\Http\Controllers\ApiController;
 
-        class {$prefix}{$name}Request extends FormRequest
+        class {{NAME}}Controller extends ApiController
+        {
+            public function index(List{{NAME}}Action $action): JsonResponse
+            {
+                $items = $action->execute(request()->only([
+                    'search',
+                    'sort_by',
+                    'sort_dir',
+                    'per_page',
+                ]));
+
+                return $this->paginated(
+                    {{NAME}}Resource::collection($items),
+                    'Data {{SNAKE}} berhasil diambil.',
+                );
+            }
+
+            public function store(
+                Create{{NAME}}Request $request,
+                Create{{NAME}}Action $action,
+            ): JsonResponse {
+                $model = $action->execute({{NAME}}Data::fromArray($request->validated()));
+
+                return $this->created(
+                    new {{NAME}}Resource($model),
+                    '{{NAME}} berhasil ditambahkan.',
+                );
+            }
+
+            public function show({{NAME}} ${{CAMEL}}): JsonResponse
+            {
+                return $this->success(
+                    new {{NAME}}Resource(${{CAMEL}}),
+                    'Detail {{SNAKE}} berhasil diambil.',
+                );
+            }
+
+            public function update(
+                Update{{NAME}}Request $request,
+                Update{{NAME}}Action $action,
+                {{NAME}} ${{CAMEL}},
+            ): JsonResponse {
+                $model = $action->execute(
+                    ${{CAMEL}},
+                    {{NAME}}Data::fromArray($request->validated()),
+                );
+
+                return $this->success(
+                    new {{NAME}}Resource($model),
+                    '{{NAME}} berhasil diperbarui.',
+                );
+            }
+
+            public function destroy(
+                Delete{{NAME}}Action $action,
+                {{NAME}} ${{CAMEL}},
+            ): JsonResponse {
+                $action->execute(${{CAMEL}});
+
+                return $this->success(message: '{{NAME}} berhasil dihapus.');
+            }
+        }
+        PHP);
+    }
+
+    private function stubRequest(string $prefix): string
+    {
+        return $this->render(<<<'PHP'
+        <?php
+
+        declare(strict_types=1);
+
+        namespace {{NAMESPACE}}\Presentation\Requests;
+
+        use Illuminate\Foundation\Http\FormRequest;
+
+        class {{PREFIX}}{{NAME}}Request extends FormRequest
         {
             public function authorize(): bool
             {
@@ -450,60 +503,56 @@ class MakeModuleCommand extends Command
             public function rules(): array
             {
                 return [
-                    'name' => ['required', 'string', 'max:255'],
-                    // TODO: tambahkan rules
+                    'name' => ['required', 'string', 'max:150'],
+                    'is_active' => ['nullable', 'boolean'],
                 ];
             }
         }
-        PHP;
+        PHP, [
+            '{{PREFIX}}' => $prefix,
+        ]);
     }
 
     private function stubResource(): string
     {
-        $name = $this->moduleName;
-        $ns   = $this->namespace;
-
-        return <<<PHP
+        return $this->render(<<<'PHP'
         <?php
 
         declare(strict_types=1);
 
-        namespace {$ns}\\Presentation\\Resources;
+        namespace {{NAMESPACE}}\Presentation\Resources;
 
-        use Illuminate\\Http\\Request;
-        use Illuminate\\Http\\Resources\\Json\\JsonResource;
+        use Illuminate\Http\Request;
+        use Illuminate\Http\Resources\Json\JsonResource;
 
-        class {$name}Resource extends JsonResource
+        class {{NAME}}Resource extends JsonResource
         {
-            public function toArray(Request \$request): array
+            public function toArray(Request $request): array
             {
                 return [
-                    'id'         => \$this->id,
-                    'name'       => \$this->name,
-                    'created_at' => \$this->created_at,
-                    'updated_at' => \$this->updated_at,
-                    // TODO: tambahkan field
+                    'id' => $this->id,
+                    'name' => $this->name,
+                    'is_active' => (bool) $this->is_active,
+                    'created_at' => $this->created_at?->toISOString(),
+                    'updated_at' => $this->updated_at?->toISOString(),
                 ];
             }
         }
-        PHP;
+        PHP);
     }
 
     private function stubServiceProvider(): string
     {
-        $name = $this->moduleName;
-        $ns   = $this->namespace;
-
-        return <<<PHP
+        return $this->render(<<<'PHP'
         <?php
 
         declare(strict_types=1);
 
-        namespace {$ns};
+        namespace {{NAMESPACE}};
 
-        use Illuminate\\Support\\ServiceProvider;
+        use Illuminate\Support\ServiceProvider;
 
-        class {$name}ServiceProvider extends ServiceProvider
+        class {{NAME}}ServiceProvider extends ServiceProvider
         {
             public function register(): void
             {
@@ -512,41 +561,77 @@ class MakeModuleCommand extends Command
 
             public function boot(): void
             {
-                \$this->loadRoutesFrom(__DIR__.'/routes.php');
+                $this->loadRoutesFrom(__DIR__.'/routes.php');
+                $this->loadRoutesFrom(__DIR__.'/routes_api.php');
             }
         }
-        PHP;
+        PHP);
     }
 
     private function stubRoutesWeb(): string
     {
-        $name       = $this->moduleName;
-        $ns         = $this->namespace;
-        $snake      = $this->snake();
-        $camel      = $this->camel();
-        $controller = "{$ns}\\Presentation\\Controllers\\{$name}Controller";
-
-        return <<<PHP
+        return $this->render(<<<'PHP'
         <?php
 
         declare(strict_types=1);
 
-        use Illuminate\\Support\\Facades\\Route;
-        use {$controller};
+        use Illuminate\Support\Facades\Route;
+        use {{NAMESPACE}}\Presentation\Controllers\{{NAME}}Controller;
 
         Route::middleware(['web', 'auth', 'perguruan'])
-            ->prefix('{$snake}')
-            ->name('{$snake}.')
-            ->group(function () {
-                Route::get('/',             [{$name}Controller::class, 'index'])   ->name('index');
-                Route::get('/create',       [{$name}Controller::class, 'create'])  ->name('create');
-                Route::post('/',            [{$name}Controller::class, 'store'])   ->name('store');
-                Route::get('/{{$camel}}',      [{$name}Controller::class, 'show'])    ->name('show');
-                Route::get('/{{$camel}}/edit', [{$name}Controller::class, 'edit'])    ->name('edit');
-                Route::put('/{{$camel}}',      [{$name}Controller::class, 'update'])  ->name('update');
-                Route::delete('/{{$camel}}',   [{$name}Controller::class, 'destroy']) ->name('destroy');
+            ->prefix('{{SNAKE}}')
+            ->name('{{SNAKE}}.')
+            ->group(function (): void {
+                Route::get('/', [{{NAME}}Controller::class, 'index'])->name('index');
+                Route::get('/create', [{{NAME}}Controller::class, 'create'])->name('create');
+                Route::post('/', [{{NAME}}Controller::class, 'store'])->name('store');
+                Route::get('/{{ROUTE_PARAM}}', [{{NAME}}Controller::class, 'show'])->name('show');
+                Route::get('/{{ROUTE_PARAM}}/edit', [{{NAME}}Controller::class, 'edit'])->name('edit');
+                Route::put('/{{ROUTE_PARAM}}', [{{NAME}}Controller::class, 'update'])->name('update');
+                Route::delete('/{{ROUTE_PARAM}}', [{{NAME}}Controller::class, 'destroy'])->name('destroy');
             });
-        PHP;
+        PHP);
+    }
+
+    private function stubRoutesApi(): string
+    {
+        return $this->render(<<<'PHP'
+        <?php
+
+        declare(strict_types=1);
+
+        use Illuminate\Support\Facades\Route;
+        use {{NAMESPACE}}\Presentation\Controllers\Api\{{NAME}}Controller;
+
+        Route::middleware(['api', 'auth:api', 'perguruan'])
+            ->prefix('api/v1/{{SNAKE}}')
+            ->name('api.v1.{{SNAKE}}.')
+            ->group(function (): void {
+                Route::get('/', [{{NAME}}Controller::class, 'index'])->name('index');
+                Route::post('/', [{{NAME}}Controller::class, 'store'])->name('store');
+                Route::get('/{{ROUTE_PARAM}}', [{{NAME}}Controller::class, 'show'])->name('show');
+                Route::put('/{{ROUTE_PARAM}}', [{{NAME}}Controller::class, 'update'])->name('update');
+                Route::delete('/{{ROUTE_PARAM}}', [{{NAME}}Controller::class, 'destroy'])->name('destroy');
+            });
+        PHP);
+    }
+
+    /**
+     * @param  array<string, string>  $extra
+     */
+    private function render(string $stub, array $extra = []): string
+    {
+        $replacements = array_merge([
+            '{{NAMESPACE}}' => $this->namespace,
+            '{{NAME}}' => $this->moduleName,
+            '{{SNAKE}}' => $this->snake(),
+            '{{CAMEL}}' => $this->camel(),
+            '{{PLURAL_CAMEL}}' => Str::plural($this->camel()),
+            '{{TABLE}}' => Str::snake(Str::pluralStudly($this->moduleName)),
+            '{{ROUTE_PARAM}}' => '{'.$this->camel().'}',
+        ], $extra);
+
+        return str_replace(array_keys($replacements), array_values($replacements), $stub).PHP_EOL;
     }
 
     private function snake(): string
@@ -561,13 +646,18 @@ class MakeModuleCommand extends Command
 
     private function reminderRegisterProvider(): void
     {
-        $provider = "\\Src\\Modules\\{$this->moduleName}\\{$this->moduleName}ServiceProvider::class";
+        $provider = "\\Modules\\{$this->moduleName}\\{$this->moduleName}ServiceProvider::class";
 
         $this->newLine();
-        $this->components->warn('Jangan lupa daftarkan ServiceProvider di:');
-        $this->line("  <fg=yellow>app/Providers/ModulesServiceProvider.php</>");
+        $this->components->warn('Daftarkan ServiceProvider module ini di app/Providers/ModulesServiceProvider.php:');
+        $this->line("    {$provider},");
         $this->newLine();
-        $this->line("  <fg=cyan>  {$provider},</>");
+    }
+
+    private function showSuccessMessage(): void
+    {
+        $this->components->info("Module [{$this->moduleName}] berhasil dibuat.");
+        $this->line('Langkah berikutnya: buat migration, daftarkan provider, lalu sesuaikan fields sesuai kebutuhan modul.');
         $this->newLine();
     }
 }

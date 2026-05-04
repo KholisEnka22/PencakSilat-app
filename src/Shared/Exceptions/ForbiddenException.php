@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Src\Shared\Exceptions;
+namespace Shared\Exceptions;
 
 use Exception;
 

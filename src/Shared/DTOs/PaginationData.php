@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Src\Shared\DTOs;
+namespace Shared\DTOs;
 
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Attributes\Validation\Min;
